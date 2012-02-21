@@ -10,6 +10,7 @@
 
 # bin/compile <build-dir> <cache-dir>
 
+export SF_ENV="prod"
 
 # ----START CONFIG-----------------------------------------------------
 
@@ -84,17 +85,20 @@ mkdir -p $BUILD_DIR $CACHE_DIR
 
 cd $BUILD_DIR
 
-#env
-#exit 1
-
 echo "-----> Move application files into 'www' folder"
 mkdir -p $CACHE_DIR/www
 mv * $CACHE_DIR/www
 mv $CACHE_DIR/www .
 
 # keep conf folder
-if [ -d www/conf ]; then
-  mv www/conf .
+if [ -d www/app/heroku ]; then
+    if [ -d www/app/heroku/${SF_ENV}/conf ]; then
+        cp -R www/app/heroku/${SF_ENV}/conf .
+    else
+        echo "---------> No Heroku conf folder found for Sf env '${SF_ENV}'. Abording..."
+        exit 1
+    fi
+    rm -rf www/app/heroku
 fi
 
 # keep Node.js dependency file
@@ -129,7 +133,7 @@ cd ${BUILD_DIR}
 if [ ! -d $NGINX_PATH ]; then
   echo "---------> Bundling Nginx v${NGINX_VERSION}"
   mkdir -p $NGINX_PATH && cd $NGINX_PATH
-  curl --silent --max-time 60 --location $NGINX_URL | tar xz
+  curl --silent --max-time 500 --location $NGINX_URL | tar xz
 fi
 echo "---------> Moving conf files to vendor directory"
 cd ${BUILD_DIR}
@@ -141,7 +145,7 @@ cd ${BUILD_DIR}
 if [ ! -d $PHP_PATH ]; then
   echo "---------> Bundling PHP v${PHP_VERSION}"
   mkdir -p $PHP_PATH && cd $PHP_PATH
-  curl --silent --max-time 300 --location $PHP_URL | tar xz
+  curl --silent --max-time 500 --location $PHP_URL | tar xz
 fi
 echo "---------> Moving conf files to vendor directory"
 cd ${BUILD_DIR}
@@ -155,12 +159,12 @@ cd ${BUILD_DIR}
 if [ ! -d $NODE_PATH ]; then
   echo "---------> Bundling Node v${NODE_VERSION}"
   mkdir -p $NODE_PATH && cd $NODE_PATH
-  curl --silent --max-time 90 --location $NODE_URL | tar xz
+  curl --silent --max-time 500 --location $NODE_URL | tar xz
   cd ..
   
   VENDORED_SCONS="$(mktmpdir scons)"
   cd $VENDORED_SCONS
-  curl --silent --max-time 90 --location $SCONS_URL | tar xz
+  curl --silent --max-time 500 --location $SCONS_URL | tar xz
 
   PATH="$VENDORED_SCONS:${BUILD_DIR}/$NODE_PATH/bin:$PATH"
   INCLUDE_PATH="${BUILD_DIR}/$NODE_PATH/include"
@@ -216,41 +220,30 @@ cd $BUILD_DIR
 
 echo "-----> Installing Sf2 application"
 
-echo "---------> Moving app conf files to Sf2 configuration directory"
-
+# Delete sub '.git' folders for each vendor
+find www/vendor -name .git -type d | xargs rm -rf
 
 echo "---------> Install Sf2 assets"
-###TODO### Fix issue with bin/vendor install script
-#echo "---------> Install Sf2 vendors"
-#${PHP_PATH}/bin/php www/bin/vendors install
-find www/vendor -name .git -type d | xargs rm -rf
-###FIXME### Change 'dev' environement to 'prod'
 
+# We need to have parameters sets into Sf2 in order to build assets...
 HEROKU_APP_PATH_STRIPPED=$(strip_slashes "${BUILD_DIR}")
 HEROKU_NODE_PATH_STRIPPED=$(strip_slashes "${NODE_PATH}")
-
-#read HEROKU_PG_USER HEROKU_PG_PASSWORD HEROKU_PG_HOST HEROKU_PG_DB << HERE
-#    $(echo "import re;pg_url = '$DATABASE_URL';pattern = re.compile('postgres://([^:]+):([^@]+)@([^/]+)/(.+)');res = pattern.search(pg_url);pg_user = res.group(1);pg_passwd = res.group(2);pg_host = res.group(3);pg_db = res.group(4);print('{0} {1} {2} {3}'.format(pg_user, pg_passwd, pg_host, pg_db))" | python)
-#HERE
-
-#cat "conf/config_parameters.ini" | sed -e "s/{__HEROKU__APP_PATH__}/${HEROKU_APP_PATH_STRIPPED}/g" -e "s/{__HEROKU_NODE_PATH__}/${HEROKU_NODE_PATH_STRIPPED}/" > www/app/config/config_parameters.ini
-
 cat "conf/parameters.ini" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/${HEROKU_NODE_PATH_STRIPPED}/g" > www/app/config/parameters.ini
 
+# We need this to use PHP in Sf2 task when building assets...
 export LD_LIBRARY_PATH=${BUILD_DIR}/${PHP_PATH}/icu/lib
 export PATH=${BUILD_DIR}/${NODE_PATH}/bin:${BUILD_DIR}/node_modules/.bin:$PATH
-${PHP_PATH}/bin/php www/app/console assets:install www/web --env=dev
-${PHP_PATH}/bin/php www/app/console assetic:dump --no-debug --env=dev
 
-#HEROKU_APP_PATH_STRIPPED=$(strip_slashes "/app")
-#HEROKU_NODE_PATH_STRIPPED=$(strip_slashes ${NODE_PATH})
-#cat "conf/config_parameters.ini" | sed -e "s/{__HEROKU__APP_PATH__}/${HEROKU_APP_PATH_STRIPPED}/g" -e "s/{__HEROKU_NODE_PATH__}/${HEROKU_NODE_PATH_STRIPPED}/" > www/app/config/config_parameters.ini
+# Sets the debug flag depending on Sf2 env (declared at the begeining of the file)
+SF_DEBUG="--no-debug"
+if [ "$SF_ENV" != "prod" ]; then
+    SF_DEBUG=""
+fi
 
-###TODO### Fix issue with bin/vendor install script
-#echo "---------> Install Sf2 vendors"
-#${PHP_PATH}/bin/php www/bin/vendors install
-#find www/vendor -name .git -type d | xargs rm -rf
+# Deploying assets
+${PHP_PATH}/bin/php www/app/console assets:install www/web --env=${SF_ENV}
+${PHP_PATH}/bin/php www/app/console assetic:dump ${SF_DEBUG} --env=${SF_ENV}
 
 # ----BOOT SCRIPT----------------------------------------------------------
 
@@ -275,20 +268,9 @@ export PATH=/app/vendor/node/bin:/app/node_modules/.bin:/app/vendor/nginx/sbin:/
 export LD_LIBRARY_PATH=/app/vendor/php/icu/lib
 cp /app/conf/php.ini /app/vendor/php/php.ini
 
-#echo "DATABASE_URL: \$DATABASE_URL"
-#[[ \$DATABASE_URL =~ postgres://([^:]+):([^@]+)@([^/]+)/(.+) ]]
-#HEROKU_PG_USER="\${BASH_REMATCH[1]}"
-#HEROKU_PG_PASSWORD="\${BASH_REMATCH[2]}"
-#HEROKU_PG_HOST="\${BASH_REMATCH[3]}"
-#HEROKU_PG_DB="\${BASH_REMATCH[4]}"
-
 read HEROKU_PG_USER HEROKU_PG_PASSWORD HEROKU_PG_HOST HEROKU_PG_DB << HERE
     \$(echo "import re;pg_url = '\$DATABASE_URL';pattern = re.compile('postgres://([^:]+):([^@]+)@([^/]+)/(.+)');res = pattern.search(pg_url);pg_user = res.group(1);pg_passwd = res.group(2);pg_host = res.group(3);pg_db = res.group(4);print('{0} {1} {2} {3}'.format(pg_user, pg_passwd, pg_host, pg_db))" | python)
 HERE
-#echo "HEROKU_PG_USER=\$HEROKU_PG_USER"
-#echo "HEROKU_PG_PASSWORD=\$HEROKU_PG_PASSWORD"
-#echo "HEROKU_PG_HOST=\$HEROKU_PG_HOST"
-#echo "HEROKU_PG_DB=\$HEROKU_PG_DB"
 
 HEROKU_APP_PATH_STRIPPED=\$(strip_slashes "/app")
 HEROKU_NODE_PATH_STRIPPED=\$(strip_slashes "$NODE_PATH")
@@ -300,7 +282,6 @@ cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}
         -e "s/__HEROKU_APP_PATH__/\${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" > /app/www/app/config/parameters.ini
 
-#cp /app/conf/parameters.ini /app/www/app/config/parameters.ini
 EOF
 chmod +x env.sh
 
