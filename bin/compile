@@ -279,6 +279,8 @@ cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}
 	-e "s/__HEROKU_PG_DB__/\${HEROKU_PG_DB}/g" \
 	-e "s/__HEROKU_PG_USER__/\${HEROKU_PG_USER}/g" \
 	-e "s/__HEROKU_PG_PASSWORD__/\${HEROKU_PG_PASSWORD}/g" \
+	-e "s/__HEROKU_SENDGRID_PASSWORD__/\${SENDGRID_PASSWORD}/g" \
+	-e "s/__HEROKU_SENDGRID_USER__/\${SENDGRID_USERNAME}/g" \
         -e "s/__HEROKU_APP_PATH__/\${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" > /app/www/app/config/parameters.ini
 
