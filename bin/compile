@@ -10,7 +10,7 @@
 
 # bin/compile <build-dir> <cache-dir>
 
-export SF_ENV="dev"
+export SF_ENV="prod"
 
 # ----START CONFIG-----------------------------------------------------
 
