@@ -10,7 +10,7 @@
 
 # bin/compile <build-dir> <cache-dir>
 
-export SF_ENV="prod"
+export SF_ENV="dev"
 
 # ----START CONFIG-----------------------------------------------------
 
@@ -25,6 +25,9 @@ NGINX_PATH="vendor/nginx"
 PHP_VERSION=5.3.10
 PHP_URL="https://${S3_BUCKET}.s3.amazonaws.com/php-${PHP_VERSION}-with-fpm-intl-heroku.tar.gz"
 PHP_PATH="vendor/php"
+
+NEWRELIC_URL="https://${S3_BUCKET}.s3.amazonaws.com/newrelic-php5-2.7.5.64-linux.tar.gz"
+NEWRELIC_PATH="vendor/newrelic"
 
 NODE_VERSION="0.6.10"
 NODE_URL="https://${S3_BUCKET}.s3.amazonaws.com/node-${NODE_VERSION}-heroku.tar.gz"
@@ -149,8 +152,32 @@ if [ ! -d $PHP_PATH ]; then
 fi
 echo "---------> Moving conf files to vendor directory"
 cd ${BUILD_DIR}
-cp conf/php-fpm.conf $PHP_PATH/etc/php-fmp.conf
+cp conf/php-fpm.conf $PHP_PATH/etc/php-fpm.conf
 cp conf/php.ini $PHP_PATH/php.ini
+
+echo "---------> Installing New Relic"
+cd ${BUILD_DIR}
+if [ ! -d $NEWRELIC_PATH ]; then
+  echo "---------> Bundling NewRelic"
+  mkdir -p $NEWRELIC_PATH && cd $NEWRELIC_PATH
+  curl --silent --max-time 500 --location $NEWRELIC_URL | tar xz
+fi
+
+echo "------------> Moving ext files to php ext directory"
+cd ${BUILD_DIR}
+if [ ! -d $PHP_PATH/ext ]; then
+  mkdir $PHP_PATH/ext
+fi
+cp $NEWRELIC_PATH/agent/newrelic-20090626.so $PHP_PATH/ext/
+
+# add php.ini conf
+#erb scripts/newrelic.ini.erb >> ${BUILD_DIR}/$PHP_PATH/php.ini
+# add daemon
+#cp $NEWRELIC_PATH/newrelic-daemon.x64 ${BUILD_DIR}/$NEWRELIC_PATH/
+# add newrlic.cfg
+#erb scripts/newrelic.cfg.template.erb > $NEWRELIC_PATH/newrelic.cfg
+
+
 
 # ----Node--------------------------------
 echo "-----> Installing Node"
@@ -232,7 +259,7 @@ cat "conf/parameters.ini" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRI
         -e "s/__HEROKU_NODE_PATH__/${HEROKU_NODE_PATH_STRIPPED}/g" > www/app/config/parameters.ini
 
 # We need this to use PHP in Sf2 task when building assets...
-export LD_LIBRARY_PATH=${BUILD_DIR}/${PHP_PATH}/icu/lib
+export LD_LIBRARY_PATH=${BUILD_DIR}/${PHP_PATH}/icu/lib:${BUILD_DIR}/${PHP_PATH}/ext:${LD_LIBRARY_PATH}
 export PATH=${BUILD_DIR}/${NODE_PATH}/bin:${BUILD_DIR}/node_modules/.bin:$PATH
 
 # Sets the debug flag depending on Sf2 env (declared at the begeining of the file)
@@ -263,10 +290,13 @@ function strip_slashes() {
 }
 
 
-export PATH=/app/vendor/node/bin:/app/node_modules/.bin:/app/vendor/nginx/sbin:/app/vendor/php/bin:/app/vendor/php/sbin:/usr/local/bin:/usr/bin:/bin:\$PATH
+export PATH=/app/vendor/newrelic:/app/vendor/node/bin:/app/node_modules/.bin:/app/vendor/nginx/sbin:/app/vendor/php/bin:/app/vendor/php/sbin:/usr/local/bin:/usr/bin:/bin:\$PATH
 
-export LD_LIBRARY_PATH=/app/vendor/php/icu/lib
+export LD_LIBRARY_PATH=/app/vendor/php/icu/lib:/app/vendor/php/ext:\$LD_LIBRARY_PATH
 cp /app/conf/php.ini /app/vendor/php/php.ini
+
+erb /app/vendor/newrelic/scripts/newrelic.ini.template.erb >> /app/vendor/php/php.ini
+erb /app/vendor/newrelic/scripts/newrelic.cfg.template.erb > /app/vendor/newrelic/newrelic.cfg
 
 read HEROKU_PG_USER HEROKU_PG_PASSWORD HEROKU_PG_HOST HEROKU_PG_DB << HERE
     \$(echo "import re;pg_url = '\$DATABASE_URL';pattern = re.compile('postgres://([^:]+):([^@]+)@([^/]+)/(.+)');res = pattern.search(pg_url);pg_user = res.group(1);pg_passwd = res.group(2);pg_host = res.group(3);pg_db = res.group(4);print('{0} {1} {2} {3}'.format(pg_user, pg_passwd, pg_host, pg_db))" | python)
@@ -292,14 +322,17 @@ cat >>boot.sh <<EOF
 
 /app/env.sh
 
-export PATH=/app/vendor/node/bin:/app/node_modules/.bin:/app/vendor/nginx/sbin:/app/vendor/php/bin:/app/vendor/php/sbin:/usr/local/bin:/usr/bin:/bin:\$PATH
+export PATH=/app/vendor/newrelic:/app/vendor/node/bin:/app/node_modules/.bin:/app/vendor/nginx/sbin:/app/vendor/php/bin:/app/vendor/php/sbin:/usr/local/bin:/usr/bin:/bin:\$PATH
 
-export LD_LIBRARY_PATH=/app/vendor/php/icu/lib
+export LD_LIBRARY_PATH=/app/vendor/php/icu/lib:/app/vendor/php/ext:\$LD_LIBRARY_PATH
 
 echo "--> Copy PHP & Nginx conf files into vendors directory"
 cp /app/conf/php-fpm.conf /app/vendor/php/etc/php-fpm.conf
 cp /app/vendor/php/share/php/fpm/status.html /app/status.html
 erb /app/conf/nginx.conf.erb > /app/vendor/nginx/conf/nginx.conf
+
+erb /app/vendor/newrelic/scripts/newrelic.ini.template.erb >> /app/vendor/php/php.ini
+erb /app/vendor/newrelic/scripts/newrelic.cfg.template.erb > /app/vendor/newrelic/newrelic.cfg
 
 if [ -d /app/www/app/cache ]; then
     rm -rf /app/www/app/cache
@@ -326,7 +359,13 @@ mkdir /app/vendor/php/log/
 touch /app/vendor/php/log/php-fpm.log
 tail -F -n 0 /app/vendor/php/log/php-fpm.log &
 
-echo "--> Booting PHP-FPM & Nginx"
+echo "--> Enable newrelic logging system"
+touch /app/vendor/php/log/newrelic-agent.log /app/vendor/php/log/newrelic-daemon.log
+tail -F -n 0 /app/vendor/php/log/newrelic-daemon.log &
+tail -F -n 0 /app/vendor/php/log/newrelic-agent.log &
+
+echo "--> Booting PHP-FPM & Nginx & newrelic"
+newrelic-daemon.x64 -c /app/vendor/newrelic/newrelic.cfg
 php-fpm
 nginx
 
