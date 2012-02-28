@@ -314,6 +314,10 @@ cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}
         -e "s/__HEROKU_APP_PATH__/\${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" > /app/www/app/config/parameters.ini
 
+cat "/app/www/app/config/config.yml" | sed -e "s/#storage_id/storage_id/g" > /app/www/app/config/config.yml.heroku
+rm -rf /app/www/app/config/config.yml
+mv /app/www/app/config/config.yml.heroku /app/www/app/config/config.yml
+
 EOF
 chmod +x env.sh
 
