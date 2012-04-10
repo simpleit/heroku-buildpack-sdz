@@ -103,7 +103,7 @@ export PHP_AUTOCONF="autoconf${AUTOCONF_VERSION}"
 cd ..
 
 echo "Use vulcan to build PHP for Heroku instance..."
-vulcan build -v -s php-${PHP_VERSION} -o $tempdir/php-${PHP_VERSION}-with-fpm-heroku.tar.gz -p /app/vendor/php -c 'mkdir -p /app/vendor/php/icu && cp -r icu/ /app/vendor/php && ./configure  --prefix=/app/vendor/php --with-pdo-pgsql --with-pgsql --with-icu-dir=/app/vendor/php/icu --enable-intl --with-iconv --with-gd --with-curl=/usr/lib --with-config-file-path=/app/vendor/php --with-openssl --enable-fpm --with-zlib --enable-mbstring --disable-debug --enable-inline-optimization --with-bz2 --enable-pcntl --enable-mbregex --with-mhash --enable-zip --with-pcre-regex --enable-apc --enable-sundown=shared && make install'
+vulcan build -v -s php-${PHP_VERSION} -o $tempdir/php-${PHP_VERSION}-with-fpm-sundown-heroku.tar.gz -p /app/vendor/php -c 'mkdir -p /app/vendor/php/icu && cp -r icu/ /app/vendor/php && ./configure  --prefix=/app/vendor/php --with-pdo-pgsql --with-pgsql --with-icu-dir=/app/vendor/php/icu --enable-intl --with-iconv --with-gd --with-curl=/usr/lib --with-config-file-path=/app/vendor/php --with-openssl --enable-fpm --with-zlib --enable-mbstring --disable-debug --enable-inline-optimization --with-bz2 --enable-pcntl --enable-mbregex --with-mhash --enable-zip --with-pcre-regex --enable-apc --enable-sundown=shared && make install'
 
 # upload to s3
 #$basedir/aws/s3 put $S3_BUCKET php-5.3.9-with-fpm-heroku.tar.gz $tempdir/php-5.3.9-with-fpm-heroku.tar.gz
