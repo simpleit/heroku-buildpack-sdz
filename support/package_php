@@ -10,6 +10,10 @@ PHP_URL="http://us.php.net/get/php-5.3.10.tar.bz2/from/www.php.net/mirror"
 APC_VERSION="3.1.9"
 APC_URL="http://pecl.php.net/get/APC-3.1.9.tgz"
 
+SUNDOWN_VERSION="0.3.1"
+SUNDOWN_URL="https://github.com/chobie/php-sundown.git"
+SUNDOWN_DIR="php-sundown"
+
 ICU_VERSION="4.4.2"
 ICU_URL="http://download.icu-project.org/files/icu4c/4.4.2/icu4c-4_4_2-src.tgz"
 
@@ -75,6 +79,20 @@ echo "Extract APC ${APC_VERSION}..."
 tar zxf APC-${APC_VERSION}.tgz
 mv APC-${APC_VERSION}/ ./php-${PHP_VERSION}/ext/apc
 
+echo "Download SUNDOWN ${SUNDOWN_VERSION}..."
+#curl -sL ${SUNDOWN_URL} -o SUNDOWN-${SUNDOWN_VERSION}.tgz
+git clone ${SUNDOWN_URL} ${SUNDOWNk_DIR}
+cd ${SUNDOWN_DIR}
+git submodule update --init
+cp sundown/src/* .
+cp sundown/html/* .
+cd ..
+
+
+echo "Extract SUNDOWN ${SUNDOWN_VERSION}..."
+#tar zxf SUNDOWN-${SUNDOWN_VERSION}.tgz
+mv ${SUNDOWN_DIR} ./php-${PHP_VERSION}/ext/sundown
+
 cd php-${PHP_VERSION}
 echo "Reconfigure PHP with extra extentions..."
 rm -rf ./configure
@@ -85,7 +103,7 @@ export PHP_AUTOCONF="autoconf${AUTOCONF_VERSION}"
 cd ..
 
 echo "Use vulcan to build PHP for Heroku instance..."
-vulcan build -v -s php-${PHP_VERSION} -o $tempdir/php-${PHP_VERSION}-with-fpm-heroku.tar.gz -p /app/vendor/php -c 'mkdir -p /app/vendor/php/icu && cp -r icu/ /app/vendor/php && ./configure  --prefix=/app/vendor/php --with-pdo-pgsql --with-pgsql --with-icu-dir=/app/vendor/php/icu --enable-intl --with-iconv --with-gd --with-curl=/usr/lib --with-config-file-path=/app/vendor/php --with-openssl --enable-fpm --with-zlib --enable-mbstring --disable-debug --enable-inline-optimization --with-bz2 --enable-pcntl --enable-mbregex --with-mhash --enable-zip --with-pcre-regex --enable-apc && make install' 
+vulcan build -v -s php-${PHP_VERSION} -o $tempdir/php-${PHP_VERSION}-with-fpm-heroku.tar.gz -p /app/vendor/php -c 'mkdir -p /app/vendor/php/icu && cp -r icu/ /app/vendor/php && ./configure  --prefix=/app/vendor/php --with-pdo-pgsql --with-pgsql --with-icu-dir=/app/vendor/php/icu --enable-intl --with-iconv --with-gd --with-curl=/usr/lib --with-config-file-path=/app/vendor/php --with-openssl --enable-fpm --with-zlib --enable-mbstring --disable-debug --enable-inline-optimization --with-bz2 --enable-pcntl --enable-mbregex --with-mhash --enable-zip --with-pcre-regex --enable-apc --enable-sundown=shared && make install'
 
 # upload to s3
 #$basedir/aws/s3 put $S3_BUCKET php-5.3.9-with-fpm-heroku.tar.gz $tempdir/php-5.3.9-with-fpm-heroku.tar.gz
