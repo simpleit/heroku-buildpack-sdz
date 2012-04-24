@@ -263,6 +263,9 @@ cat "conf/parameters.ini" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRI
 export LD_LIBRARY_PATH=${BUILD_DIR}/${PHP_PATH}/icu/lib:${BUILD_DIR}/${PHP_PATH}/ext:${LD_LIBRARY_PATH}
 export PATH=${BUILD_DIR}/${NODE_PATH}/bin:${BUILD_DIR}/node_modules/.bin:$PATH
 
+echo "extension_dir=${PHP_PATH}/ext" >> $PHP_PATH/php.ini
+echo "extension=sundown.so" >> $PHP_PATH/php.ini
+
 # Sets the debug flag depending on Sf2 env (declared at the begeining of the file)
 SF_DEBUG="--no-debug"
 if [ "$SF_ENV" != "prod" ]; then
@@ -270,8 +273,8 @@ if [ "$SF_ENV" != "prod" ]; then
 fi
 
 # Deploying assets
-${PHP_PATH}/bin/php www/app/console assets:install www/web --env=${SF_ENV}
-${PHP_PATH}/bin/php www/app/console assetic:dump ${SF_DEBUG} --env=${SF_ENV}
+${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assets:install www/web --env=${SF_ENV}
+${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assetic:dump ${SF_DEBUG} --env=${SF_ENV}
 
 # ----BOOT SCRIPT----------------------------------------------------------
 

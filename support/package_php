@@ -10,7 +10,7 @@ PHP_URL="http://us.php.net/get/php-5.3.10.tar.bz2/from/www.php.net/mirror"
 APC_VERSION="3.1.9"
 APC_URL="http://pecl.php.net/get/APC-3.1.9.tgz"
 
-SUNDOWN_VERSION="0.3.1"
+SUNDOWN_VERSION="0.3.3"
 SUNDOWN_URL="https://github.com/chobie/php-sundown.git"
 SUNDOWN_DIR="php-sundown"
 
