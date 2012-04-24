@@ -23,7 +23,7 @@ NGINX_URL="https://${S3_BUCKET}.s3.amazonaws.com/nginx-${NGINX_VERSION}-heroku.t
 NGINX_PATH="vendor/nginx"
 
 PHP_VERSION=5.3.10
-PHP_URL="https://${S3_BUCKET}.s3.amazonaws.com/php-${PHP_VERSION}-with-fpm-intl-sundown-heroku.tar.gz"
+PHP_URL="https://${S3_BUCKET}.s3.amazonaws.com/php-${PHP_VERSION}-with-fpm-sundown-heroku.tar.gz"
 PHP_PATH="vendor/php"
 
 NEWRELIC_URL="https://${S3_BUCKET}.s3.amazonaws.com/newrelic-php5-2.7.5.64-linux.tar.gz"
