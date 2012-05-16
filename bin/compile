@@ -303,7 +303,7 @@ erb /app/vendor/newrelic/scripts/newrelic.ini.template.erb >> /app/vendor/php/ph
 erb /app/vendor/newrelic/scripts/newrelic.cfg.template.erb > /app/vendor/newrelic/newrelic.cfg
 
 read HEROKU_PG_USER HEROKU_PG_PASSWORD HEROKU_PG_HOST HEROKU_PG_DB HEROKU_PG_PORT << HERE
-    \$(echo "import re;pg_url = '\$DATABASE_URL';pattern = re.compile('postgres://([^:]+):([^@]+)@([^:]+):([^/]+)/(.+)');res = pattern.search(pg_url);pg_user = res.group(1);pg_passwd = res.group(2);pg_host = res.group(3);pg_port = res.group(4);pg_db = res.group(5);print('{0} {1} {2} {3} {4}'.format(pg_user, pg_passwd, pg_host, pg_db, pg_port))" | python)
+    \$(echo "import re;pg_url = '\$DATABASE_URL';pattern = re.compile('postgres://([^:]+):([^@]+)@([\.\-_a-zA-Z0-9]+):?([0-9]{0,5})/(.+)');res = pattern.search(pg_url);pg_user = res.group(1);pg_passwd = res.group(2);pg_host = res.group(3);pg_port = res.group(4);pg_db = res.group(5);print('{0} {1} {2} {3} {4}'.format(pg_user, pg_passwd, pg_host, pg_db, pg_port))" | python)
 HERE
 
 HEROKU_APP_PATH_STRIPPED=\$(strip_slashes "/app")
