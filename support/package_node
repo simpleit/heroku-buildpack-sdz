@@ -2,7 +2,7 @@
 
 set -e
 
-node_version="0.6.10"
+node_version="0.6.18"
 
 #if [ "$AWS_ID" == "" ]; then
 #  echo "must set AWS_ID"
