@@ -256,6 +256,9 @@ echo "---------> Install Sf2 assets"
 # We need to have parameters sets into Sf2 in order to build assets...
 HEROKU_APP_PATH_STRIPPED=$(strip_slashes "${BUILD_DIR}")
 HEROKU_NODE_PATH_STRIPPED=$(strip_slashes "${NODE_PATH}")
+
+date +%s > compilation_time
+
 cat "conf/parameters.ini" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/${HEROKU_NODE_PATH_STRIPPED}/g" > www/app/config/parameters.ini
 
@@ -305,6 +308,8 @@ HERE
 
 HEROKU_APP_PATH_STRIPPED=\$(strip_slashes "/app")
 HEROKU_NODE_PATH_STRIPPED=\$(strip_slashes "$NODE_PATH")
+HEROKU_ASSETS_VERSION=\`cat /app/compilation_time\`
+
 
 cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}/g" \
 	-e "s/__HEROKU_PG_DB__/\${HEROKU_PG_DB}/g" \
@@ -314,7 +319,8 @@ cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}
 	-e "s/__HEROKU_SENDGRID_PASSWORD__/\${SENDGRID_PASSWORD}/g" \
 	-e "s/__HEROKU_SENDGRID_USER__/\${SENDGRID_USERNAME}/g" \
         -e "s/__HEROKU_APP_PATH__/\${HEROKU_APP_PATH_STRIPPED}/g" \
-        -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" > /app/www/app/config/parameters.ini
+        -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" \
+        -e "s/__HEROKU_ASSETS_VERSION__/\${HEROKU_ASSETS_VERSION}/g" > /app/www/app/config/parameters.ini
 
 cat "/app/www/app/config/config.yml" | sed -e "s/#storage_id/storage_id/g" > /app/www/app/config/config.yml.heroku
 rm -rf /app/www/app/config/config.yml
