@@ -248,8 +248,6 @@ cd $BUILD_DIR
 
 echo "-----> Installing Sf2 application"
 
-# Delete sub '.git' folders for each vendor
-find www/vendor -name .git -type d | xargs rm -rf
 
 echo "---------> Install Sf2 assets"
 
@@ -259,15 +257,50 @@ HEROKU_NODE_PATH_STRIPPED=$(strip_slashes "${NODE_PATH}")
 
 date +%s > compilation_time
 
-cat "conf/parameters.ini" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRIPPED}/g" \
-        -e "s/__HEROKU_NODE_PATH__/${HEROKU_NODE_PATH_STRIPPED}/g" > www/app/config/parameters.ini
+cat "conf/parameters.yml" | sed -e "s/__HEROKU_APP_PATH__/${HEROKU_APP_PATH_STRIPPED}/g" \
+        -e "s/__HEROKU_NODE_PATH__/${HEROKU_NODE_PATH_STRIPPED}/g" > www/app/config/parameters.yml
 
 # We need this to use PHP in Sf2 task when building assets...
 export LD_LIBRARY_PATH=${BUILD_DIR}/${PHP_PATH}/icu/lib:${BUILD_DIR}/${PHP_PATH}/ext:${LD_LIBRARY_PATH}
-export PATH=${BUILD_DIR}/${NODE_PATH}/bin:${BUILD_DIR}/node_modules/.bin:$PATH
+export PATH=${BUILD_DIR}/${NODE_PATH}/bin:${BUILD_DIR}/node_modules/.bin:${BUILD_DIR}/${PHP_PATH}/bin:$PATH
 
 echo "extension_dir=${PHP_PATH}/ext" >> $PHP_PATH/php.ini
 echo "extension=sundown.so" >> $PHP_PATH/php.ini
+
+# check if we have Composer dependencies and vendors are not bundled
+if [ -f www/composer.json ]; then
+  GIT_DIR_ORIG=$GIT_DIR
+  unset GIT_DIR
+  echo "-----> Installing Composer dependencies"
+  COMPOSER_URL="http://getcomposer.org/composer.phar"
+  curl --silent --max-time 60 --location "$COMPOSER_URL" > www/composer.phar
+  cd www 
+  ../${PHP_PATH}/bin/php --php-ini ../$PHP_PATH/php.ini composer.phar install --prefer-source --no-scripts
+  cd $BUILD_DIR
+  
+  # This steps (building bootstrap & install requirement files) are adapted from SensioDistributionBundle/Composer/ScriptHandler.php Composer scripts)
+  # Please update the following lines if the SensioDistributionBundle has changed.
+  echo "-----> Build Boostrap"
+  ${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/bin/build_bootstrap.php
+  
+  echo "-----> Install requirement files"
+  cp www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/skeleton/app/SymfonyRequirements.php www/app/SymfonyRequirements.php
+  cp www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/skeleton/app/check.php www/app/check.php
+
+  if [ -f www/web/config.php ]; then
+    cp www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/skeleton/web/config.php www/web/config.php
+  fi
+
+  echo "-----> Delete composer.phar script"
+  rm www/composer.phar
+
+  export GIT_DIR=$GIT_DIR_ORIG
+fi
+
+# Delete sub '.git' folders for each vendor
+if [ -d www/vendor ]; then
+    find www/vendor -name .git -type d | xargs rm -rf
+fi
 
 # Sets the debug flag depending on Sf2 env (declared at the begeining of the file)
 SF_DEBUG="--no-debug"
@@ -311,7 +344,7 @@ HEROKU_NODE_PATH_STRIPPED=\$(strip_slashes "$NODE_PATH")
 HEROKU_ASSETS_VERSION=\`cat /app/compilation_time\`
 
 
-cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}/g" \
+cat "/app/conf/parameters.yml" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}/g" \
 	-e "s/__HEROKU_PG_DB__/\${HEROKU_PG_DB}/g" \
 	-e "s/__HEROKU_PG_PORT__/\${HEROKU_PG_PORT}/g" \
 	-e "s/__HEROKU_PG_USER__/\${HEROKU_PG_USER}/g" \
@@ -320,9 +353,9 @@ cat "/app/conf/parameters.ini" | sed -e "s/__HEROKU_PG_HOST__/\${HEROKU_PG_HOST}
 	-e "s/__HEROKU_SENDGRID_USER__/\${SENDGRID_USERNAME}/g" \
         -e "s/__HEROKU_APP_PATH__/\${HEROKU_APP_PATH_STRIPPED}/g" \
         -e "s/__HEROKU_NODE_PATH__/\${HEROKU_NODE_PATH_STRIPPED}/g" \
-        -e "s/__HEROKU_ASSETS_VERSION__/\${HEROKU_ASSETS_VERSION}/g" > /app/www/app/config/parameters.ini
+        -e "s/__HEROKU_ASSETS_VERSION__/\${HEROKU_ASSETS_VERSION}/g" > /app/www/app/config/parameters.yml
 
-cat "/app/www/app/config/config.yml" | sed -e "s/#storage_id/storage_id/g" > /app/www/app/config/config.yml.heroku
+cat "/app/www/app/config/config.yml" | sed -e "s/#handler_id/handler_id/g" > /app/www/app/config/config.yml.heroku
 rm -rf /app/www/app/config/config.yml
 mv /app/www/app/config/config.yml.heroku /app/www/app/config/config.yml
 
