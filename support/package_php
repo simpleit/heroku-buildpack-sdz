@@ -60,7 +60,7 @@ tar xzf icu-${ICU_VERSION}.tgz
 mv icu/ icu-${ICU_VERSION}
 
 echo "Use vulcan to build ICU for Heroku instance..."
-vulcan build -v -s icu-${ICU_VERSION} -o $tempdir/icu-${ICU_VERSION}-heroku.tar.gz -p /app/vendor/php/icu -c 'cd source/ && ./runConfigureICU Linux --enable-tests=no --enable-samples=no --exec-prefix=/app/vendor/php/icu --prefix=/app/vendor/php/icu && make install' 
+vulcan build -v -s icu-${ICU_VERSION} -o $tempdir/icu-${ICU_VERSION}-heroku.tar.gz -p /app/vendor/php/icu -c 'cd source/ && ./runConfigureICU Linux --enable-tests=no --enable-samples=no --exec-prefix=/app/vendor/php/icu --prefix=/app/vendor/php/icu && make install'
 
 echo "Download PHP ${PHP_VERSION}..."
 curl -sL ${PHP_URL} -o php-${PHP_VERSION}.tar.bz2
@@ -81,7 +81,7 @@ mv APC-${APC_VERSION}/ ./php-${PHP_VERSION}/ext/apc
 
 echo "Download SUNDOWN ${SUNDOWN_VERSION}..."
 #curl -sL ${SUNDOWN_URL} -o SUNDOWN-${SUNDOWN_VERSION}.tgz
-git clone ${SUNDOWN_URL} ${SUNDOWNk_DIR}
+git clone ${SUNDOWN_URL} ${SUNDOWN_DIR}
 cd ${SUNDOWN_DIR}
 git submodule update --init
 cp sundown/src/* .
@@ -94,7 +94,7 @@ echo "Extract SUNDOWN ${SUNDOWN_VERSION}..."
 mv ${SUNDOWN_DIR} ./php-${PHP_VERSION}/ext/sundown
 
 cd php-${PHP_VERSION}
-echo "Reconfigure PHP with extra extentions..."
+echo "Reconfigure PHP with extra extensions..."
 rm -rf ./configure
 
 export PHP_AUTOCONF="autoconf${AUTOCONF_VERSION}"
