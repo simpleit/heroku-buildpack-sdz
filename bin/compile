@@ -73,7 +73,7 @@ run_npm() {
   if [ "${PIPESTATUS[*]}" != "0 0" ]; then
     echo " !     Failed to $command dependencies with npm"
     exit 1
-  fi  
+  fi
 }
 
 # ----PRE-INSTALL ACTIONS-----------------------------------------------
@@ -126,7 +126,7 @@ fi
 #  rm -rf $DIR
 #  if [ -d $CACHE_DIR/$DIR ]; then
 #    cp -r $CACHE_DIR/$DIR $DIR
-#  fi  
+#  fi
 #done
 
 # ----INSTALL SERVICES-----------------------------------------------------
@@ -189,7 +189,7 @@ if [ ! -d $NODE_PATH ]; then
   mkdir -p $NODE_PATH && cd $NODE_PATH
   curl --silent --max-time 500 --location $NODE_URL | tar xz
   cd ..
-  
+
   VENDORED_SCONS="$(mktmpdir scons)"
   cd $VENDORED_SCONS
   curl --silent --max-time 500 --location $SCONS_URL | tar xz
@@ -204,19 +204,19 @@ if [ ! -d $NODE_PATH ]; then
 
   # unpack existing cache
   if [ -d $CACHE_STORE_DIR ]; then
-  
+
     # generate a place to put node_modules
     TEMP_NODE_MODULES_DIR=$(mktmpdir node_modules)
-  
+
     # move existing node_modules out of the way
     if [ -d $CACHE_TARGET_DIR ]; then
       mv $CACHE_TARGET_DIR $TEMP_NODE_MODULES_DIR/
-    fi  
-  
+    fi
+
     # copy the cached node_modules in
     mkdir -p $CACHE_TARGET_DIR
     cp -R $CACHE_STORE_DIR/* $CACHE_TARGET_DIR/
-  
+
     # move existing node_modules back into place
     if [ -d $TEMP_NODE_MODULES_DIR/node_modules ]; then
       cp -R $TEMP_NODE_MODULES_DIR/node_modules/* $CACHE_TARGET_DIR/
@@ -225,13 +225,13 @@ if [ ! -d $NODE_PATH ]; then
 
   # install dependencies with npm
   echo "---------> Installing dependencies with npm $NPM_VERSION"
-  
+
   cd $BUILD_DIR
   run_npm install less
   run_npm rebuild less
-  
+
   echo "---------> Dependencies installed" | indent
-  
+
   # repack cache with new assets
   if [ -d $CACHE_TARGET_DIR ]; then
     rm -rf $CACHE_STORE_DIR
@@ -274,15 +274,15 @@ if [ -f www/composer.json ]; then
   echo "-----> Installing Composer dependencies"
   COMPOSER_URL="http://getcomposer.org/composer.phar"
   curl --silent --max-time 60 --location "$COMPOSER_URL" > www/composer.phar
-  cd www 
-  ../${PHP_PATH}/bin/php --php-ini ../$PHP_PATH/php.ini composer.phar install --prefer-source --no-scripts
+  cd www
+  ../${PHP_PATH}/bin/php --php-ini ../$PHP_PATH/php.ini composer.phar install --prefer-source --no-scripts --optimize-autoloader --no-interaction
   cd $BUILD_DIR
-  
+
   # This steps (building bootstrap & install requirement files) are adapted from SensioDistributionBundle/Composer/ScriptHandler.php Composer scripts)
   # Please update the following lines if the SensioDistributionBundle has changed.
   echo "-----> Build Boostrap"
   ${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/bin/build_bootstrap.php
-  
+
   echo "-----> Install requirement files"
   cp www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/skeleton/app/SymfonyRequirements.php www/app/SymfonyRequirements.php
   cp www/vendor/sensio/distribution-bundle/Sensio/Bundle/DistributionBundle/Resources/skeleton/app/check.php www/app/check.php
@@ -306,8 +306,8 @@ fi
 SF_DEBUG="--no-debug"
 
 # Deploying assets
-${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assets:install www/web --env=${SF_ENV}
-${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assetic:dump ${SF_DEBUG} --env=${SF_ENV}
+${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assets:install www/web --env=${SF_ENV} --no-interaction
+${PHP_PATH}/bin/php --php-ini $PHP_PATH/php.ini www/app/console assetic:dump ${SF_DEBUG} --env=${SF_ENV} --no-interaction
 
 # ----BOOT SCRIPT----------------------------------------------------------
 
